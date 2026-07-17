@@ -12,6 +12,7 @@
  */
 package org.flowable.job.service;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -96,6 +97,18 @@ public abstract class ScopeAwareInternalJobManager implements InternalJobManager
     }
 
     protected abstract void lockJobScopeInternal(Job job);
+
+    @Override
+    public final void extendJobScopeLock(Job job, Date expectedLockExpirationTime) {
+        InternalJobManager internalJobManager = findInternalJobManager(job);
+        if (internalJobManager == null) {
+            extendJobScopeLockInternal(job, expectedLockExpirationTime);
+        } else {
+            internalJobManager.extendJobScopeLock(job, expectedLockExpirationTime);
+        }
+    }
+
+    protected abstract void extendJobScopeLockInternal(Job job, Date expectedLockExpirationTime);
 
     @Override
     public final void clearJobScopeLock(Job job) {
