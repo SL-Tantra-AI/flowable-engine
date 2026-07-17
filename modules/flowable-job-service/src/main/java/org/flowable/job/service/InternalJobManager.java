@@ -13,7 +13,6 @@
 
 package org.flowable.job.service;
 
-import java.util.Date;
 import java.util.Map;
 
 import org.flowable.job.api.ExternalWorkerJob;
@@ -38,8 +37,6 @@ public interface InternalJobManager {
     void handleJobDelete(Job job);
     
     void lockJobScope(Job job);
-
-    void extendJobScopeLock(Job job, Date expectedLockExpirationTime);
     
     void clearJobScopeLock(Job job);
     
