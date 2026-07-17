@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.flowable.common.engine.api.FlowableOptimisticLockingException;
 import org.flowable.common.engine.api.scope.ScopeTypes;
 import org.flowable.job.api.ExternalWorkerJob;
 import org.flowable.job.api.Job;
@@ -108,7 +109,10 @@ public abstract class ScopeAwareInternalJobManager implements InternalJobManager
         }
     }
 
-    protected abstract void extendJobScopeLockInternal(Job job, Date expectedLockExpirationTime);
+    protected void extendJobScopeLockInternal(Job job, Date expectedLockExpirationTime) {
+        throw new FlowableOptimisticLockingException(
+                "External-worker scope-lock extension is not supported for job " + job.getId());
+    }
 
     @Override
     public final void clearJobScopeLock(Job job) {
