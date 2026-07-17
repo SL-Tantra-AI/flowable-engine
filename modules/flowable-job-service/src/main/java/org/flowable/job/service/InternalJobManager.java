@@ -13,10 +13,8 @@
 
 package org.flowable.job.service;
 
-import java.util.Date;
 import java.util.Map;
 
-import org.flowable.common.engine.api.FlowableOptimisticLockingException;
 import org.flowable.job.api.ExternalWorkerJob;
 import org.flowable.job.api.Job;
 import org.flowable.job.service.impl.persistence.entity.JobEntity;
@@ -39,11 +37,6 @@ public interface InternalJobManager {
     void handleJobDelete(Job job);
     
     void lockJobScope(Job job);
-
-    default void extendJobScopeLock(Job job, Date expectedLockExpirationTime) {
-        throw new FlowableOptimisticLockingException(
-                "External-worker scope-lock extension is not supported for job " + job.getId());
-    }
     
     void clearJobScopeLock(Job job);
     
