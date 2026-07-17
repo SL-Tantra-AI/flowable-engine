@@ -20,13 +20,15 @@ import org.flowable.common.engine.api.FlowableForbiddenException;
 import org.flowable.common.engine.api.FlowableIllegalArgumentException;
 import org.flowable.common.engine.api.FlowableObjectNotFoundException;
 import org.flowable.common.engine.api.FlowableOptimisticLockingException;
+import org.flowable.common.engine.api.scope.ScopeTypes;
 import org.flowable.common.engine.impl.interceptor.Command;
 import org.flowable.common.engine.impl.interceptor.CommandContext;
 import org.flowable.job.api.Job;
-import org.flowable.job.service.InternalJobManager;
 import org.flowable.job.service.JobServiceConfiguration;
 import org.flowable.job.service.impl.persistence.entity.ExternalWorkerJobEntity;
 import org.flowable.job.service.impl.persistence.entity.ExternalWorkerJobEntityManager;
+import org.flowable.job.service.impl.util.CommandContextUtil;
+import org.flowable.job.service.impl.util.ExternalWorkerScopeLockUpdater;
 
 /**
  * Extends an active external-worker lock using optimistic concurrency.
@@ -90,13 +92,39 @@ public class ExtendExternalWorkerJobLockCmd implements Command<Date> {
         jobEntityManager.update(job);
 
         if (job.isExclusive()) {
-            InternalJobManager internalJobManager = jobServiceConfiguration.getInternalJobManager();
-            if (internalJobManager != null) {
-                internalJobManager.extendJobScopeLock(job, expectedLockExpirationTime);
-            }
+            extendExclusiveScopeLock(commandContext, job, newExpirationTime, currentTime);
         }
 
         return newExpirationTime;
+    }
+
+    protected void extendExclusiveScopeLock(
+            CommandContext commandContext,
+            ExternalWorkerJobEntity job,
+            Date newExpirationTime,
+            Date currentTime) {
+
+        String tablePrefix = CommandContextUtil.getDbSqlSession(commandContext)
+                .getDbSqlSessionFactory()
+                .getDatabaseTablePrefix();
+        if (job.getProcessInstanceId() != null) {
+            ExternalWorkerScopeLockUpdater.extend(
+                    tablePrefix + "ACT_RU_EXECUTION",
+                    job.getProcessInstanceId(),
+                    workerId,
+                    newExpirationTime,
+                    currentTime);
+        } else if (ScopeTypes.CMMN.equals(job.getScopeType())) {
+            ExternalWorkerScopeLockUpdater.extend(
+                    tablePrefix + "ACT_CMMN_RU_CASE_INST",
+                    job.getScopeId(),
+                    workerId,
+                    newExpirationTime,
+                    currentTime);
+        } else {
+            throw new FlowableOptimisticLockingException(
+                    "Cannot extend the exclusive scope lock for external worker job " + jobId);
+        }
     }
 
     protected void validateRequest() {
