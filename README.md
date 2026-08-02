@@ -40,6 +40,44 @@ The distribution contains most of the sources as jar files. The source code of F
 
 Flowable runs on a Java higher than or equal to version 25. Use the JDK packaged with your Linux distribution or go to [adoptium.net](https://adoptium.net/) and click on the *Latest LTS Release* button. There are installation instructions on that page as well. To verify that your installation was successful, run `java -version` on the command line. That should print the installed version of your JDK.
 
+### SL Tantra build and local deployment
+
+The organization build uses the `java-25` branch. Maven Wrapper, Docker with
+Compose v2, and a sibling `platform-suite` checkout are required. Run these
+commands from the `flowable-engine` repository root:
+
+```bash
+export JAVA_HOME=/path/to/jdk-25
+export PATH="$JAVA_HOME/bin:$PATH"
+
+# Compile and test the supported Spring Boot process starter and dependencies.
+./mvnw -B -nsu -DskipITs -Dcheckstyle.skip=true \
+  -Dmaven.javadoc.skip=true \
+  -pl :flowable-spring-boot-starter-process -am verify
+
+# Install the approved starter for Platform Suite, CRM, and FAM sibling builds.
+./mvnw -B -nsu -Pdistro -Dmaven.test.skip=true -DskipITs \
+  -Dcheckstyle.skip=true -Dmaven.javadoc.skip=true \
+  -pl :flowable-spring-boot-starter-process -am install
+```
+
+Platform Suite owns the reproducible local Flowable REST topology and its
+PostgreSQL volume. From this repository, invoke its lifecycle with:
+
+```bash
+make -C ../platform-suite flowable-runtime-up \
+  FLOWABLE_JAVA_HOME="$JAVA_HOME"
+make -C ../platform-suite flowable-runtime-smoke
+
+# Stop the runtime and remove its local development database volume.
+make -C ../platform-suite flowable-runtime-down
+```
+
+`flowable-runtime-up` builds the Java 25 base image and the
+`flowable-app-rest` image through the fork's Maven/Jib configuration before
+starting fresh containers. Product BPMN/CMMN/DMN definitions and product IAM
+policies remain in CRM or FAM and are not added to this fork.
+
 [Flowable V6](https://github.com/flowable/flowable-engine/tree/flowable6.x) is still maintained and supports Java 8+.
 
 ### Flowable Design
